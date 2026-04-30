@@ -1,0 +1,74 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect to myAmpere",
+        "description": "Enter the connection details of your Ampere.IO smart-box",
+        "data": {
+          "host": "IP Address",
+          "port": "Modbus TCP Port",
+          "slave": "Slave ID (Unit ID)",
+          "function": "Modbus Function",
+          "scan_interval": "Polling interval (seconds)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Cannot connect. Check the IP, port and that the smart-box is powered on."
+    },
+    "abort": {
+      "already_configured": "This device is already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "myAmpere Sensors",
+        "description": "You have {total} sensors configured, {active} active.\n\n⭐ = predefined  🔴 = disabled",
+        "data": {
+          "action": "Select an action"
+        }
+      },
+      "sensor": {
+        "title": "Edit sensor: {sensor_name}",
+        "data": {
+          "name": "Sensor name",
+          "register": "Modbus register address",
+          "dtype": "Data type",
+          "scale": "Scale factor (value is multiplied by this)",
+          "precision": "Decimal places to show",
+          "unit": "Unit of measurement (e.g. W, kWh, %, V)",
+          "device_class": "HA device class",
+          "state_class": "HA state class",
+          "icon": "Icon (e.g. mdi:solar-panel)",
+          "enabled": "Sensor enabled"
+        }
+      },
+      "connection": {
+        "title": "Connection settings",
+        "data": {
+          "host": "IP Address",
+          "port": "Modbus TCP Port",
+          "slave": "Slave ID (Unit ID)",
+          "function": "Modbus Function",
+          "scan_interval": "Polling interval (seconds)"
+        }
+      },
+      "add": {
+        "title": "Add custom sensor",
+        "description": "Add a Modbus register discovered with the mapping tool",
+        "data": {
+          "name": "Sensor name",
+          "register": "Modbus register address",
+          "dtype": "Data type",
+          "scale": "Scale factor",
+          "precision": "Decimal places",
+          "unit": "Unit of measurement",
+          "device_class": "HA device class",
+          "state_class": "HA state class",
+          "icon": "Icon (e.g. mdi:home-lightning-bolt)"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "name": "myAmpere",
+  "category": "integration",
+  "homeassistant": "2024.1.0",
+  "documentation": "https://github.com/aperaltaservan/myAmpereHA/blob/main/README.md",
+  "issue_tracker": "https://github.com/aperaltaservan/myAmpereHA/issues",
+  "domains": ["sensor"],
+  "iot_class": "local_polling",
+  "render_readme": true
+}

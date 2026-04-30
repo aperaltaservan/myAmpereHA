@@ -1,0 +1,74 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Conectar con myAmpere",
+        "description": "Introduce los datos de conexión de tu smart-box Ampere.IO",
+        "data": {
+          "host": "Dirección IP",
+          "port": "Puerto Modbus TCP",
+          "slave": "Slave ID (Unit ID)",
+          "function": "Función Modbus",
+          "scan_interval": "Intervalo de lectura (segundos)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "No se puede conectar. Comprueba la IP, el puerto y que la smart-box esté encendida."
+    },
+    "abort": {
+      "already_configured": "Este dispositivo ya está configurado."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Sensores myAmpere",
+        "description": "Tienes {total} sensores configurados, {active} activos.\n\n⭐ = predefinido  🔴 = deshabilitado",
+        "data": {
+          "action": "Selecciona una acción"
+        }
+      },
+      "sensor": {
+        "title": "Editar sensor: {sensor_name}",
+        "data": {
+          "name": "Nombre del sensor",
+          "register": "Dirección del registro Modbus",
+          "dtype": "Tipo de dato",
+          "scale": "Factor de escala (el valor se multiplica por esto)",
+          "precision": "Decimales a mostrar",
+          "unit": "Unidad de medida (ej: W, kWh, %, V)",
+          "device_class": "Clase de dispositivo HA",
+          "state_class": "Clase de estado HA",
+          "icon": "Icono (ej: mdi:solar-panel)",
+          "enabled": "Sensor habilitado"
+        }
+      },
+      "connection": {
+        "title": "Ajustes de conexión",
+        "data": {
+          "host": "Dirección IP",
+          "port": "Puerto Modbus TCP",
+          "slave": "Slave ID (Unit ID)",
+          "function": "Función Modbus",
+          "scan_interval": "Intervalo de lectura (segundos)"
+        }
+      },
+      "add": {
+        "title": "Añadir sensor personalizado",
+        "description": "Añade un registro Modbus descubierto con la herramienta de mapeo",
+        "data": {
+          "name": "Nombre del sensor",
+          "register": "Dirección del registro Modbus",
+          "dtype": "Tipo de dato",
+          "scale": "Factor de escala",
+          "precision": "Decimales a mostrar",
+          "unit": "Unidad de medida",
+          "device_class": "Clase de dispositivo HA",
+          "state_class": "Clase de estado HA",
+          "icon": "Icono (ej: mdi:home-lightning-bolt)"
+        }
+      }
+    }
+  }
+}
