@@ -1,3 +1,23 @@
+# Release notes - v0.2.1
+
+Fecha: 30 de abril de 2026
+
+## Resumen
+
+myAmpere v0.2.1 mejora la identificacion del equipo Ampere.IO y corrige sensores predefinidos del modelo TW6.
+
+## Cambios
+
+- Lee los registros ASCII `1000-1010` como modelo/equipo y los registra en Home Assistant como `model`.
+- Lee los registros ASCII `1016-1018` como version de firmware y los registra como `sw_version`.
+- Anade entidades de diagnostico `Equipo` y `Version` para consultar esos valores desde Home Assistant.
+- Elimina el sensor predefinido `Consumo hogar 2` porque el registro `25` no esta identificado correctamente.
+- Aplica una calibracion por tramos al SOC de bateria TW6 basada en los puntos observados:
+  - lectura 18% -> SOC app 9%
+  - lectura 65% -> SOC app 65%
+  - lectura 95% -> SOC app 100%
+- Optimiza la lectura Modbus por grupos cercanos para evitar leer todo el rango hasta los registros `1000+`.
+
 # Release notes - v0.2.0
 
 Fecha: 30 de abril de 2026

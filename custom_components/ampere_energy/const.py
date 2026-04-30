@@ -57,6 +57,14 @@ SENSOR_KEY_STATE_CLASS = "state_class"
 SENSOR_KEY_ICON = "icon"
 SENSOR_KEY_ENABLED = "enabled"
 SENSOR_KEY_IS_PREDEFINED = "predefined"   # True = viene del componente
+SENSOR_KEY_VALUE_MAP = "value_map"
+
+# Calibraciones conocidas para sensores predefinidos.
+VALUE_MAP_SOC_TW6 = "soc_tw6"
+
+# Registros ASCII de identificacion del equipo.
+DEVICE_MODEL_REGISTERS = list(range(1000, 1011))
+DEVICE_VERSION_REGISTERS = list(range(1016, 1019))
 
 # Claves para sensores derivados de energia (integracion de W a kWh)
 ENERGY_KEY_ID = "id"
@@ -107,6 +115,7 @@ PREDEFINED_SENSORS: list[dict] = [
         SENSOR_KEY_ICON: "mdi:battery",
         SENSOR_KEY_ENABLED: True,
         SENSOR_KEY_IS_PREDEFINED: True,
+        SENSOR_KEY_VALUE_MAP: VALUE_MAP_SOC_TW6,
     },
     {
         SENSOR_KEY_NAME: "Red electrica",
@@ -160,20 +169,9 @@ PREDEFINED_SENSORS: list[dict] = [
         SENSOR_KEY_ENABLED: True,
         SENSOR_KEY_IS_PREDEFINED: True,
     },
-    {
-        SENSOR_KEY_NAME: "Consumo hogar 2",
-        SENSOR_KEY_REGISTER: 25,
-        SENSOR_KEY_DTYPE: DTYPE_UINT16,
-        SENSOR_KEY_SCALE: 1.0,
-        SENSOR_KEY_PRECISION: 0,
-        SENSOR_KEY_UNIT: "W",
-        SENSOR_KEY_DEVICE_CLASS: "power",
-        SENSOR_KEY_STATE_CLASS: "measurement",
-        SENSOR_KEY_ICON: "mdi:home-lightning-bolt-outline",
-        SENSOR_KEY_ENABLED: True,
-        SENSOR_KEY_IS_PREDEFINED: True,
-    },
 ]
+
+OBSOLETE_PREDEFINED_REGISTERS = {25}
 
 # Sensores kWh acumulados para usar directamente en HA Energy.
 # Los registros con signo se dividen en dos contadores monotonicamente crecientes.
@@ -225,8 +223,23 @@ DERIVED_ENERGY_SENSORS: list[dict] = [
 
 def merge_predefined_sensors(sensor_defs: list[dict]) -> list[dict]:
     """Devuelve sensores existentes mas predefinidos nuevos que falten."""
-    merged = [dict(sensor) for sensor in sensor_defs]
+    merged = [
+        dict(sensor)
+        for sensor in sensor_defs
+        if not (
+            sensor.get(SENSOR_KEY_IS_PREDEFINED)
+            and sensor.get(SENSOR_KEY_REGISTER) in OBSOLETE_PREDEFINED_REGISTERS
+        )
+    ]
     existing_registers = {sensor.get(SENSOR_KEY_REGISTER) for sensor in merged}
+    predefined_by_register = {
+        sensor[SENSOR_KEY_REGISTER]: sensor for sensor in PREDEFINED_SENSORS
+    }
+    for sensor in merged:
+        predefined = predefined_by_register.get(sensor.get(SENSOR_KEY_REGISTER))
+        if predefined and sensor.get(SENSOR_KEY_IS_PREDEFINED):
+            for key, value in predefined.items():
+                sensor.setdefault(key, value)
     for predefined in PREDEFINED_SENSORS:
         if predefined[SENSOR_KEY_REGISTER] not in existing_registers:
             merged.append(dict(predefined))

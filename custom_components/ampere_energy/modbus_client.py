@@ -152,21 +152,27 @@ class AmpereModbusClient:
         if not addresses:
             return {}
 
-        sorted_addrs = sorted(set(addresses))
-        addr_set = set(sorted_addrs)
-        start = sorted_addrs[0]
-        end = sorted_addrs[-1]
         result: dict[int, int] = {}
 
-        pos = start
-        while pos <= end:
-            count = min(CHUNK_SIZE, end - pos + 1)
-            raw = await self._raw_read(pos, count)
-            if raw is not None:
-                for i, val in enumerate(raw):
-                    if (pos + i) in addr_set:
-                        result[pos + i] = val
-            pos += count
+        groups: list[list[int]] = []
+        for addr in sorted(set(addresses)):
+            if not groups or addr - groups[-1][0] >= CHUNK_SIZE:
+                groups.append([addr])
+            else:
+                groups[-1].append(addr)
+
+        for group in groups:
+            addr_set = set(group)
+            pos = group[0]
+            end = group[-1]
+            while pos <= end:
+                count = min(CHUNK_SIZE, end - pos + 1)
+                raw = await self._raw_read(pos, count)
+                if raw is not None:
+                    for i, val in enumerate(raw):
+                        if (pos + i) in addr_set:
+                            result[pos + i] = val
+                pos += count
 
         return result
 

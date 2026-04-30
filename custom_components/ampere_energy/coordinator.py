@@ -9,6 +9,8 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .const import (
+    DEVICE_MODEL_REGISTERS,
+    DEVICE_VERSION_REGISTERS,
     DOMAIN,
     SENSOR_KEY_REGISTER,
     SENSOR_KEY_DTYPE,
@@ -43,6 +45,8 @@ class AmpereCoordinator(DataUpdateCoordinator[dict[int, float | None]]):
         )
         self._client = client
         self._sensor_defs = sensor_defs
+        self.device_model: str | None = None
+        self.device_version: str | None = None
 
     def update_sensor_defs(self, sensor_defs: list[dict]) -> None:
         """Actualiza la lista de sensores activos (llamado al reconfigurar)."""
@@ -61,6 +65,8 @@ class AmpereCoordinator(DataUpdateCoordinator[dict[int, float | None]]):
 
         # Calcular qué registros necesitamos (contando registros extra para tipos 32-bit)
         needed_addresses: set[int] = set()
+        needed_addresses.update(DEVICE_MODEL_REGISTERS)
+        needed_addresses.update(DEVICE_VERSION_REGISTERS)
         for sensor in active:
             addr = sensor[SENSOR_KEY_REGISTER]
             dtype = sensor.get(SENSOR_KEY_DTYPE, "uint16")
@@ -76,6 +82,9 @@ class AmpereCoordinator(DataUpdateCoordinator[dict[int, float | None]]):
 
         if not raw_map:
             raise UpdateFailed("Sin respuesta Modbus — comprueba IP y slave ID")
+
+        self.device_model = self._decode_ascii(raw_map, DEVICE_MODEL_REGISTERS)
+        self.device_version = self._decode_ascii(raw_map, DEVICE_VERSION_REGISTERS)
 
         # Decodificar cada sensor
         result: dict[int, float | None] = {}
@@ -101,3 +110,16 @@ class AmpereCoordinator(DataUpdateCoordinator[dict[int, float | None]]):
                 result[addr] = None
 
         return result
+
+    @staticmethod
+    def _decode_ascii(raw_map: dict[int, int], registers: list[int]) -> str | None:
+        """Decodifica texto ASCII empaquetado en registros Modbus de 16 bits."""
+        chars: list[str] = []
+        for register in registers:
+            raw = raw_map.get(register)
+            if raw is None:
+                return None
+            chars.append(chr((raw >> 8) & 0xFF))
+            chars.append(chr(raw & 0xFF))
+        value = "".join(chars).strip("\x00\r\n\t ")
+        return value or None

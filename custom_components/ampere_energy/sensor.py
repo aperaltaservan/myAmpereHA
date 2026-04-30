@@ -7,13 +7,14 @@ from datetime import UTC, datetime
 
 from homeassistant.components.sensor import (
     SensorDeviceClass,
+    SensorEntityDescription,
     SensorEntity,
     SensorStateClass,
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST, UnitOfEnergy
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers.entity import DeviceInfo
+from homeassistant.helpers.entity import DeviceInfo, EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
@@ -36,6 +37,8 @@ from .const import (
     SENSOR_KEY_REGISTER,
     SENSOR_KEY_STATE_CLASS,
     SENSOR_KEY_UNIT,
+    SENSOR_KEY_VALUE_MAP,
+    VALUE_MAP_SOC_TW6,
     merge_predefined_sensors,
 )
 from .coordinator import AmpereCoordinator
@@ -68,18 +71,43 @@ async def async_setup_entry(
         for energy_def in DERIVED_ENERGY_SENSORS
         if energy_def[ENERGY_KEY_SOURCE_REGISTER] in active_registers
     )
+    entities.extend(
+        [
+            AmpereDiagnosticSensor(
+                coordinator,
+                entry,
+                SensorEntityDescription(
+                    key="device_model",
+                    name="Equipo",
+                    icon="mdi:devices",
+                    entity_category=EntityCategory.DIAGNOSTIC,
+                ),
+            ),
+            AmpereDiagnosticSensor(
+                coordinator,
+                entry,
+                SensorEntityDescription(
+                    key="device_version",
+                    name="Version",
+                    icon="mdi:package-variant",
+                    entity_category=EntityCategory.DIAGNOSTIC,
+                ),
+            ),
+        ]
+    )
 
     async_add_entities(entities)
 
 
-def _device_info(entry: ConfigEntry) -> DeviceInfo:
+def _device_info(entry: ConfigEntry, coordinator: AmpereCoordinator) -> DeviceInfo:
     """Agrupa todos los sensores bajo el mismo dispositivo."""
     host = entry.data.get(CONF_HOST, "unknown")
     return DeviceInfo(
         identifiers={(DOMAIN, entry.entry_id)},
         name="Ampere Energy",
         manufacturer="Ampere Energy SL",
-        model="Ampere.IO Smart-box",
+        model=coordinator.device_model or "Ampere.IO Smart-box",
+        sw_version=coordinator.device_version,
         configuration_url=f"http://{host}",
     )
 
@@ -97,6 +125,7 @@ class AmpereEnergySensor(CoordinatorEntity[AmpereCoordinator], SensorEntity):
         self._entry = entry
         self._register = sensor_def[SENSOR_KEY_REGISTER]
         self._precision = sensor_def.get(SENSOR_KEY_PRECISION, 0)
+        self._value_map = sensor_def.get(SENSOR_KEY_VALUE_MAP)
 
         self._attr_unique_id = f"{DOMAIN}_{entry.entry_id}_reg{self._register}"
         self._attr_name = sensor_def[SENSOR_KEY_NAME]
@@ -120,7 +149,7 @@ class AmpereEnergySensor(CoordinatorEntity[AmpereCoordinator], SensorEntity):
 
     @property
     def device_info(self) -> DeviceInfo:
-        return _device_info(self._entry)
+        return _device_info(self._entry, self.coordinator)
 
     @callback
     def _handle_coordinator_update(self) -> None:
@@ -135,9 +164,20 @@ class AmpereEnergySensor(CoordinatorEntity[AmpereCoordinator], SensorEntity):
         raw = self.coordinator.data.get(self._register)
         if raw is None:
             return None
+        raw = self._map_value(raw)
         if self._precision == 0:
             return int(round(raw))
         return round(raw, self._precision)
+
+    def _map_value(self, value: float) -> float:
+        """Aplica calibraciones conocidas a sensores predefinidos."""
+        if self._value_map != VALUE_MAP_SOC_TW6:
+            return value
+        if value <= 65:
+            mapped = 9 + ((value - 18) * (65 - 9) / (65 - 18))
+        else:
+            mapped = 65 + ((value - 65) * (100 - 65) / (95 - 65))
+        return min(100.0, max(0.0, mapped))
 
     @property
     def native_value(self) -> float | int | None:
@@ -187,7 +227,7 @@ class AmpereEnergyIntegratedSensor(
 
     @property
     def device_info(self) -> DeviceInfo:
-        return _device_info(self._entry)
+        return _device_info(self._entry, self.coordinator)
 
     async def async_added_to_hass(self) -> None:
         """Restaura el acumulado tras reiniciar Home Assistant."""
@@ -241,3 +281,44 @@ class AmpereEnergyIntegratedSensor(
             and self.coordinator.data is not None
             and self.coordinator.data.get(self._source_register) is not None
         )
+
+
+class AmpereDiagnosticSensor(CoordinatorEntity[AmpereCoordinator], SensorEntity):
+    """Sensor de diagnostico con datos identificativos del equipo."""
+
+    entity_description: SensorEntityDescription
+
+    def __init__(
+        self,
+        coordinator: AmpereCoordinator,
+        entry: ConfigEntry,
+        description: SensorEntityDescription,
+    ) -> None:
+        super().__init__(coordinator)
+        self._entry = entry
+        self.entity_description = description
+        self._attr_unique_id = f"{DOMAIN}_{entry.entry_id}_{description.key}"
+        self._attr_name = description.name
+        self._attr_icon = description.icon
+        self._attr_entity_category = description.entity_category
+
+    @property
+    def device_info(self) -> DeviceInfo:
+        return _device_info(self._entry, self.coordinator)
+
+    @property
+    def native_value(self) -> str | None:
+        if self.entity_description.key == "device_model":
+            return self.coordinator.device_model
+        if self.entity_description.key == "device_version":
+            return self.coordinator.device_version
+        return None
+
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        self._attr_native_value = self.native_value
+        self.async_write_ha_state()
+
+    @property
+    def available(self) -> bool:
+        return self.coordinator.last_update_success and self.native_value is not None
