@@ -1,8 +1,8 @@
-"""Constantes para la integración Ampere Energy."""
+"""Constantes para la integracion Ampere Energy."""
 
 DOMAIN = "ampere_energy"
 
-# Claves de configuración
+# Claves de configuracion
 CONF_SLAVE = "slave"
 CONF_FUNCTION = "function"
 CONF_SCAN_INTERVAL = "scan_interval"
@@ -35,17 +35,17 @@ DTYPE_OPTIONS = [
 ]
 
 DTYPE_LABELS = {
-    DTYPE_UINT16:     "uint16 — Entero sin signo 16 bits (más común)",
-    DTYPE_INT16:      "int16  — Entero con signo 16 bits",
-    DTYPE_UINT32_BE:  "uint32 Big-Endian — 32 bits, high primero",
-    DTYPE_INT32_BE:   "int32  Big-Endian — 32 bits con signo, high primero",
-    DTYPE_UINT32_LE:  "uint32 Little-Endian — 32 bits, low primero",
-    DTYPE_INT32_LE:   "int32  Little-Endian — 32 bits con signo, low primero",
-    DTYPE_FLOAT32_BE: "float32 Big-Endian — IEEE 754, high primero",
-    DTYPE_FLOAT32_LE: "float32 Little-Endian — IEEE 754, low primero",
+    DTYPE_UINT16: "uint16 - Entero sin signo 16 bits (mas comun)",
+    DTYPE_INT16: "int16 - Entero con signo 16 bits",
+    DTYPE_UINT32_BE: "uint32 Big-Endian - 32 bits, high primero",
+    DTYPE_INT32_BE: "int32 Big-Endian - 32 bits con signo, high primero",
+    DTYPE_UINT32_LE: "uint32 Little-Endian - 32 bits, low primero",
+    DTYPE_INT32_LE: "int32 Little-Endian - 32 bits con signo, low primero",
+    DTYPE_FLOAT32_BE: "float32 Big-Endian - IEEE 754, high primero",
+    DTYPE_FLOAT32_LE: "float32 Little-Endian - IEEE 754, low primero",
 }
 
-# Claves de cada definición de sensor
+# Claves de cada definicion de sensor
 SENSOR_KEY_NAME = "name"
 SENSOR_KEY_REGISTER = "register"
 SENSOR_KEY_DTYPE = "dtype"
@@ -57,6 +57,14 @@ SENSOR_KEY_STATE_CLASS = "state_class"
 SENSOR_KEY_ICON = "icon"
 SENSOR_KEY_ENABLED = "enabled"
 SENSOR_KEY_IS_PREDEFINED = "predefined"   # True = viene del componente
+
+# Claves para sensores derivados de energia (integracion de W a kWh)
+ENERGY_KEY_ID = "id"
+ENERGY_KEY_NAME = "name"
+ENERGY_KEY_SOURCE_REGISTER = "source_register"
+ENERGY_KEY_MODE = "mode"
+ENERGY_MODE_POSITIVE = "positive"
+ENERGY_MODE_NEGATIVE = "negative"
 
 # Valores por defecto
 DEFAULT_PORT = 502
@@ -72,10 +80,10 @@ NO_VALUE_SENTINEL = 65535
 
 # Sensores predefinidos que vienen con el componente.
 # El usuario los puede editar o deshabilitar desde la UI.
-# Están basados en los registros descubiertos en el Ampere.IO TW6.
+# Estan basados en los registros descubiertos en el Ampere.IO TW6.
 PREDEFINED_SENSORS: list[dict] = [
     {
-        SENSOR_KEY_NAME: "Producción solar",
+        SENSOR_KEY_NAME: "Produccion solar",
         SENSOR_KEY_REGISTER: 9,
         SENSOR_KEY_DTYPE: DTYPE_UINT16,
         SENSOR_KEY_SCALE: 1.0,
@@ -88,7 +96,7 @@ PREDEFINED_SENSORS: list[dict] = [
         SENSOR_KEY_IS_PREDEFINED: True,
     },
     {
-        SENSOR_KEY_NAME: "SOC batería",
+        SENSOR_KEY_NAME: "SOC bateria",
         SENSOR_KEY_REGISTER: 15,
         SENSOR_KEY_DTYPE: DTYPE_UINT16,
         SENSOR_KEY_SCALE: 0.1,
@@ -101,7 +109,7 @@ PREDEFINED_SENSORS: list[dict] = [
         SENSOR_KEY_IS_PREDEFINED: True,
     },
     {
-        SENSOR_KEY_NAME: "Red eléctrica",
+        SENSOR_KEY_NAME: "Red electrica",
         SENSOR_KEY_REGISTER: 1,
         SENSOR_KEY_DTYPE: DTYPE_INT16,
         SENSOR_KEY_SCALE: 1.0,
@@ -114,7 +122,7 @@ PREDEFINED_SENSORS: list[dict] = [
         SENSOR_KEY_IS_PREDEFINED: True,
     },
     {
-        SENSOR_KEY_NAME: "Batería / Casa",
+        SENSOR_KEY_NAME: "Bateria / Casa",
         SENSOR_KEY_REGISTER: 5,
         SENSOR_KEY_DTYPE: DTYPE_INT16,
         SENSOR_KEY_SCALE: 1.0,
@@ -123,6 +131,19 @@ PREDEFINED_SENSORS: list[dict] = [
         SENSOR_KEY_DEVICE_CLASS: "power",
         SENSOR_KEY_STATE_CLASS: "measurement",
         SENSOR_KEY_ICON: "mdi:home-battery",
+        SENSOR_KEY_ENABLED: True,
+        SENSOR_KEY_IS_PREDEFINED: True,
+    },
+    {
+        SENSOR_KEY_NAME: "Potencia bateria",
+        SENSOR_KEY_REGISTER: 13,
+        SENSOR_KEY_DTYPE: DTYPE_INT16,
+        SENSOR_KEY_SCALE: 1.0,
+        SENSOR_KEY_PRECISION: 0,
+        SENSOR_KEY_UNIT: "W",
+        SENSOR_KEY_DEVICE_CLASS: "power",
+        SENSOR_KEY_STATE_CLASS: "measurement",
+        SENSOR_KEY_ICON: "mdi:battery-charging",
         SENSOR_KEY_ENABLED: True,
         SENSOR_KEY_IS_PREDEFINED: True,
     },
@@ -153,3 +174,61 @@ PREDEFINED_SENSORS: list[dict] = [
         SENSOR_KEY_IS_PREDEFINED: True,
     },
 ]
+
+# Sensores kWh acumulados para usar directamente en HA Energy.
+# Los registros con signo se dividen en dos contadores monotonicamente crecientes.
+DERIVED_ENERGY_SENSORS: list[dict] = [
+    {
+        ENERGY_KEY_ID: "solar_production_energy",
+        ENERGY_KEY_NAME: "Energia produccion solar",
+        ENERGY_KEY_SOURCE_REGISTER: 9,
+        ENERGY_KEY_MODE: ENERGY_MODE_POSITIVE,
+        SENSOR_KEY_ICON: "mdi:solar-power-variant",
+    },
+    {
+        ENERGY_KEY_ID: "home_consumption_energy",
+        ENERGY_KEY_NAME: "Energia consumo hogar",
+        ENERGY_KEY_SOURCE_REGISTER: 43,
+        ENERGY_KEY_MODE: ENERGY_MODE_POSITIVE,
+        SENSOR_KEY_ICON: "mdi:home-lightning-bolt",
+    },
+    {
+        ENERGY_KEY_ID: "grid_import_energy",
+        ENERGY_KEY_NAME: "Energia importada de red",
+        ENERGY_KEY_SOURCE_REGISTER: 1,
+        ENERGY_KEY_MODE: ENERGY_MODE_POSITIVE,
+        SENSOR_KEY_ICON: "mdi:transmission-tower-import",
+    },
+    {
+        ENERGY_KEY_ID: "grid_export_energy",
+        ENERGY_KEY_NAME: "Energia exportada a red",
+        ENERGY_KEY_SOURCE_REGISTER: 1,
+        ENERGY_KEY_MODE: ENERGY_MODE_NEGATIVE,
+        SENSOR_KEY_ICON: "mdi:transmission-tower-export",
+    },
+    {
+        ENERGY_KEY_ID: "battery_discharge_energy",
+        ENERGY_KEY_NAME: "Energia descargada bateria",
+        ENERGY_KEY_SOURCE_REGISTER: 13,
+        ENERGY_KEY_MODE: ENERGY_MODE_POSITIVE,
+        SENSOR_KEY_ICON: "mdi:battery-arrow-down",
+    },
+    {
+        ENERGY_KEY_ID: "battery_charge_energy",
+        ENERGY_KEY_NAME: "Energia cargada bateria",
+        ENERGY_KEY_SOURCE_REGISTER: 13,
+        ENERGY_KEY_MODE: ENERGY_MODE_NEGATIVE,
+        SENSOR_KEY_ICON: "mdi:battery-arrow-up",
+    },
+]
+
+
+def merge_predefined_sensors(sensor_defs: list[dict]) -> list[dict]:
+    """Devuelve sensores existentes mas predefinidos nuevos que falten."""
+    merged = [dict(sensor) for sensor in sensor_defs]
+    existing_registers = {sensor.get(SENSOR_KEY_REGISTER) for sensor in merged}
+    for predefined in PREDEFINED_SENSORS:
+        if predefined[SENSOR_KEY_REGISTER] not in existing_registers:
+            merged.append(dict(predefined))
+            existing_registers.add(predefined[SENSOR_KEY_REGISTER])
+    return merged

@@ -16,6 +16,7 @@ from .const import (
     CONF_SCAN_INTERVAL,
     CONF_SENSORS,
     DEFAULT_SCAN_INTERVAL,
+    merge_predefined_sensors,
 )
 from .modbus_client import AmpereModbusClient
 from .coordinator import AmpereCoordinator
@@ -32,7 +33,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     slave = entry.data[CONF_SLAVE]
     function = entry.data[CONF_FUNCTION]
     scan_interval = entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
-    sensor_defs = entry.options.get(CONF_SENSORS, [])
+    sensor_defs = merge_predefined_sensors(entry.options.get(CONF_SENSORS, []))
 
     # Crear cliente Modbus y verificar conectividad
     client = AmpereModbusClient(host, port, slave, function)

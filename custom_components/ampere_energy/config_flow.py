@@ -41,6 +41,7 @@ from .const import (
     SENSOR_KEY_ICON,
     SENSOR_KEY_ENABLED,
     SENSOR_KEY_IS_PREDEFINED,
+    merge_predefined_sensors,
 )
 from .modbus_client import AmpereModbusClient
 
@@ -137,7 +138,9 @@ class AmpereOptionsFlow(OptionsFlow):
         self._entry = config_entry
         # Copia mutable de los sensores actuales
         self._sensors: list[dict] = copy.deepcopy(
-            config_entry.options.get(CONF_SENSORS, _initial_sensors())
+            merge_predefined_sensors(
+                config_entry.options.get(CONF_SENSORS, _initial_sensors())
+            )
         )
         self._editing_index: int | None = None
         self._connection_changed: bool = False
