@@ -4,24 +4,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What is this
 
-Integración personalizada de Home Assistant (custom component) para inversores **Ampere Energy** (Torre, Tower Pro, Square). Se conecta **localmente** a la smart-box **Ampere.IO** mediante **Modbus TCP** usando `pymodbus>=3.6.0,<4.0.0`. No hay nube ni API externa.
+Integración personalizada de Home Assistant (custom component) para inversores **Ampere Energy** (Torre, Tower Pro, Square, Hybrid). Se conecta **localmente** a la smart-box **Ampere.IO** mediante **Modbus TCP** usando sockets asyncio crudos (no requiere librerías externas). No hay nube ni API externa.
 
 Se distribuye via HACS como repositorio personalizado (categoría: integration).
 
 ## Instalación y desarrollo
 
-No hay sistema de build, bundler ni test runner propios. El desarrollo es directo sobre los ficheros Python.
+No hay sistema de build, bundler ni test runner propios. El desarrollo es directo sobre los fichełos Python.
 
 **Para probar la integración:**
 1. Copiar `custom_components/ampere_energy/` en el directorio `config/custom_components/` de Home Assistant.
 2. Reiniciar Home Assistant.
 3. Añadir la integración desde UI: Ajustes → Dispositivos y servicios → + Añadir integración → "Ampere Energy".
-
-**Dependencia de Python:**
-```
-pymodbus>=3.6.0,<4.0.0
-```
-Declarada en `manifest.json`; Home Assistant la instala automáticamente.
 
 **Versión mínima de HA:** 2024.1.0 (ver `hacs.json`).
 
