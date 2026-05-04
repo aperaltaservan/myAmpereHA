@@ -2,18 +2,17 @@
 
 DOMAIN = "ampere_energy"
 
-# Claves de configuracion
 CONF_SLAVE = "slave"
 CONF_FUNCTION = "function"
 CONF_SCAN_INTERVAL = "scan_interval"
 CONF_SENSORS = "sensors"
+CONF_TIMEOUT = "timeout"
+CONF_MAX_RETRIES = "max_retries"
 
-# Funciones Modbus disponibles
-FUNCTION_HOLDING = "holding"   # FC03
-FUNCTION_INPUT = "input"       # FC04
+FUNCTION_HOLDING = "holding"
+FUNCTION_INPUT = "input"
 FUNCTION_OPTIONS = [FUNCTION_HOLDING, FUNCTION_INPUT]
 
-# Tipos de dato soportados
 DTYPE_UINT16 = "uint16"
 DTYPE_INT16 = "int16"
 DTYPE_UINT32_BE = "uint32_be"
@@ -45,7 +44,6 @@ DTYPE_LABELS = {
     DTYPE_FLOAT32_LE: "float32 Little-Endian - IEEE 754, low primero",
 }
 
-# Claves de cada definicion de sensor
 SENSOR_KEY_NAME = "name"
 SENSOR_KEY_REGISTER = "register"
 SENSOR_KEY_DTYPE = "dtype"
@@ -56,17 +54,14 @@ SENSOR_KEY_DEVICE_CLASS = "device_class"
 SENSOR_KEY_STATE_CLASS = "state_class"
 SENSOR_KEY_ICON = "icon"
 SENSOR_KEY_ENABLED = "enabled"
-SENSOR_KEY_IS_PREDEFINED = "predefined"   # True = viene del componente
+SENSOR_KEY_IS_PREDEFINED = "predefined"
 SENSOR_KEY_VALUE_MAP = "value_map"
 
-# Calibraciones conocidas para sensores predefinidos.
 VALUE_MAP_SOC_TW6 = "soc_tw6"
 
-# Registros ASCII de identificacion del equipo.
 DEVICE_MODEL_REGISTERS = list(range(1000, 1011))
 DEVICE_VERSION_REGISTERS = list(range(1016, 1019))
 
-# Claves para sensores derivados de energia (integracion de W a kWh)
 ENERGY_KEY_ID = "id"
 ENERGY_KEY_NAME = "name"
 ENERGY_KEY_SOURCE_REGISTER = "source_register"
@@ -74,21 +69,56 @@ ENERGY_KEY_MODE = "mode"
 ENERGY_MODE_POSITIVE = "positive"
 ENERGY_MODE_NEGATIVE = "negative"
 
-# Valores por defecto
+BINARY_SENSOR_KEY_NAME = "name"
+BINARY_SENSOR_KEY_REGISTERS = "registers"
+BINARY_SENSOR_KEY_THRESHOLD = "threshold"
+BINARY_SENSOR_KEY_INVERT = "invert"
+
+PREDEFINED_BINARY_SENSORS: list[dict] = [
+    {
+        BINARY_SENSOR_KEY_NAME: "Cargando bateria",
+        BINARY_SENSOR_KEY_REGISTERS: [13],
+        BINARY_SENSOR_KEY_THRESHOLD: 0,
+        BINARY_SENSOR_KEY_INVERT: False,
+    },
+    {
+        BINARY_SENSOR_KEY_NAME: "Descargando bateria",
+        BINARY_SENSOR_KEY_REGISTERS: [13],
+        BINARY_SENSOR_KEY_THRESHOLD: 0,
+        BINARY_SENSOR_KEY_INVERT: True,
+    },
+    {
+        BINARY_SENSOR_KEY_NAME: "Produciendo solar",
+        BINARY_SENSOR_KEY_REGISTERS: [9],
+        BINARY_SENSOR_KEY_THRESHOLD: 0,
+        BINARY_SENSOR_KEY_INVERT: False,
+    },
+    {
+        BINARY_SENSOR_KEY_NAME: "Importando red",
+        BINARY_SENSOR_KEY_REGISTERS: [1],
+        BINARY_SENSOR_KEY_THRESHOLD: 0,
+        BINARY_SENSOR_KEY_INVERT: False,
+    },
+    {
+        BINARY_SENSOR_KEY_NAME: "Exportando red",
+        BINARY_SENSOR_KEY_REGISTERS: [1],
+        BINARY_SENSOR_KEY_THRESHOLD: 0,
+        BINARY_SENSOR_KEY_INVERT: True,
+    },
+]
+
 DEFAULT_PORT = 502
 DEFAULT_SLAVE = 1
 DEFAULT_FUNCTION = FUNCTION_INPUT
 DEFAULT_SCAN_INTERVAL = 30
+DEFAULT_TIMEOUT = 5.0
+DEFAULT_MAX_RETRIES = 3
 DEFAULT_DTYPE = DTYPE_UINT16
 DEFAULT_SCALE = 1.0
 DEFAULT_PRECISION = 0
 
-# Valor Modbus que significa "sin dato"
 NO_VALUE_SENTINEL = 65535
 
-# Sensores predefinidos que vienen con el componente.
-# El usuario los puede editar o deshabilitar desde la UI.
-# Estan basados en los registros descubiertos en el Ampere.IO TW6.
 PREDEFINED_SENSORS: list[dict] = [
     {
         SENSOR_KEY_NAME: "Produccion solar",
@@ -171,10 +201,6 @@ PREDEFINED_SENSORS: list[dict] = [
     },
 ]
 
-OBSOLETE_PREDEFINED_REGISTERS = {25}
-
-# Sensores kWh acumulados para usar directamente en HA Energy.
-# Los registros con signo se dividen en dos contadores monotonicamente crecientes.
 DERIVED_ENERGY_SENSORS: list[dict] = [
     {
         ENERGY_KEY_ID: "solar_production_energy",
@@ -220,6 +246,7 @@ DERIVED_ENERGY_SENSORS: list[dict] = [
     },
 ]
 
+OBSOLETE_PREDEFINED_REGISTERS = {25}
 
 def merge_predefined_sensors(sensor_defs: list[dict]) -> list[dict]:
     """Devuelve sensores existentes mas predefinidos nuevos que falten."""

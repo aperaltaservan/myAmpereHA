@@ -11,6 +11,8 @@ import asyncio
 import struct
 import logging
 import time
+from dataclasses import dataclass
+from typing import Callable
 
 from .const import (
     FUNCTION_HOLDING,
@@ -30,6 +32,23 @@ _LOGGER = logging.getLogger(__name__)
 
 CHUNK_SIZE = 60  # Registros por petición
 
+MAX_RETRIES = 3
+INITIAL_BACKOFF = 0.5  # segundos
+MAX_BACKOFF = 4.0  # segundos
+
+
+@dataclass
+class ModbusConfig:
+    """Configuración de conexión Modbus."""
+    host: str
+    port: int
+    slave: int
+    function: str
+    timeout: float = 5.0
+    max_retries: int = MAX_RETRIES
+    initial_backoff: float = INITIAL_BACKOFF
+    max_backoff: float = MAX_BACKOFF
+
 
 class AmpereModbusClient:
     """Gestiona la comunicación Modbus TCP con la smart-box Ampere.IO."""
@@ -41,12 +60,112 @@ class AmpereModbusClient:
         slave: int,
         function: str,
         timeout: float = 5.0,
+        max_retries: int = MAX_RETRIES,
+        initial_backoff: float = INITIAL_BACKOFF,
+        max_backoff: float = MAX_BACKOFF,
     ) -> None:
         self._host = host
         self._port = port
         self._slave = slave
         self._function = function
         self._timeout = timeout
+        self._max_retries = max_retries
+        self._initial_backoff = initial_backoff
+        self._max_backoff = max_backoff
+        self._connection_errors = 0
+        self._last_success = 0.0
+
+    @property
+    def is_alive(self) -> bool:
+        """Retorna True si la conexión está healthy basada en errores recientes."""
+        return self._connection_errors < 3
+
+    @property
+    def connection_errors(self) -> int:
+        """Número de errores de conexión consecutivos."""
+        return self._connection_errors
+
+    def reset_error_count(self) -> None:
+        """Resetea el contador de errores tras una conexión exitosa."""
+        self._connection_errors = 0
+
+    def _record_error(self) -> None:
+        """Registra un error de conexión."""
+        self._connection_errors += 1
+        _LOGGER.debug(
+            "Error de conexión registrado (total: %s)",
+            self._connection_errors,
+        )
+
+    # ------------------------------------------------------------------
+    # Retry con backoff exponencial
+    # ------------------------------------------------------------------
+
+    async def _with_retry(
+        self,
+        coro_fn: Callable[[], asyncio.Task],
+    ) -> tuple[bool, list[int] | None]:
+        """
+        Ejecuta una operación con retry y backoff exponencial.
+
+        Args:
+            coro_fn: Función que devuelve una Task con la operación a ejecutar.
+
+        Returns:
+            Tupla (success, result) donde success indica si la operación tuvo éxito.
+        """
+        backoff = self._initial_backoff
+
+        for attempt in range(self._max_retries):
+            try:
+                task = coro_fn()
+                result = await task
+                if result is not None:
+                    self.reset_error_count()
+                    return True, result
+                if attempt < self._max_retries - 1:
+                    _LOGGER.debug(
+                        "Intento %s/%s sin respuesta, esperando %.1fs",
+                        attempt + 1,
+                        self._max_retries,
+                        backoff,
+                    )
+                    await asyncio.sleep(backoff)
+                    backoff = min(backoff * 2, self._max_backoff)
+                else:
+                    self._record_error()
+                    return False, None
+            except asyncio.TimeoutError:
+                _LOGGER.warning(
+                    "Timeout en intento %s/%s",
+                    attempt + 1,
+                    self._max_retries,
+                )
+                if attempt < self._max_retries - 1:
+                    await asyncio.sleep(backoff)
+                    backoff = min(backoff * 2, self._max_backoff)
+            except ConnectionRefusedError:
+                _LOGGER.warning(
+                    "Conexión rechazada en intento %s/%s",
+                    attempt + 1,
+                    self._max_retries,
+                )
+                if attempt < self._max_retries - 1:
+                    await asyncio.sleep(backoff)
+                    backoff = min(backoff * 2, self._max_backoff)
+            except OSError as exc:
+                _LOGGER.warning(
+                    "Error de red en intento %s/%s: %s",
+                    attempt + 1,
+                    self._max_retries,
+                    exc,
+                )
+                if attempt < self._max_retries - 1:
+                    await asyncio.sleep(backoff)
+                    backoff = min(backoff * 2, self._max_backoff)
+
+        self._record_error()
+        return False, None
 
     # ------------------------------------------------------------------
     # Lectura cruda por socket (igual que el mapeador)
@@ -167,7 +286,10 @@ class AmpereModbusClient:
             end = group[-1]
             while pos <= end:
                 count = min(CHUNK_SIZE, end - pos + 1)
-                raw = await self._raw_read(pos, count)
+
+                success, raw = await self._with_retry(
+                    lambda p=pos, c=count: asyncio.create_task(self._raw_read(p, c)),
+                )
                 if raw is not None:
                     for i, val in enumerate(raw):
                         if (pos + i) in addr_set:
@@ -181,9 +303,26 @@ class AmpereModbusClient:
     # ------------------------------------------------------------------
 
     async def test_connection(self) -> bool:
-        """Verifica conectividad: abre TCP, lee registro 0, cierra."""
-        result = await self._raw_read(0, 1)
-        return result is not None
+        """Verifica conectividad con retry."""
+        success, result = await self._with_retry(
+            lambda: asyncio.create_task(self._raw_read(0, 1)),
+        )
+        if success:
+            _LOGGER.info(
+                "Conexión exitosa a %s:%s (slave=%s, function=%s)",
+                self._host,
+                self._port,
+                self._slave,
+                self._function,
+            )
+        else:
+            _LOGGER.warning(
+                "Fallo de conexión a %s:%s tras %s intentos",
+                self._host,
+                self._port,
+                self._max_retries,
+            )
+        return success
 
     # ------------------------------------------------------------------
     # Interpretación de tipos de dato

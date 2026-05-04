@@ -61,6 +61,7 @@ class AmpereCoordinator(DataUpdateCoordinator[dict[int, float | None]]):
         active = [s for s in self._sensor_defs if s.get(SENSOR_KEY_ENABLED, True)]
 
         if not active:
+            _LOGGER.debug("No hay sensores activos para leer")
             return {}
 
         # Calcular qué registros necesitamos (contando registros extra para tipos 32-bit)
@@ -81,10 +82,14 @@ class AmpereCoordinator(DataUpdateCoordinator[dict[int, float | None]]):
         )
 
         if not raw_map:
+            _LOGGER.error("Sin respuesta Modbus — comprueba IP y slave ID")
             raise UpdateFailed("Sin respuesta Modbus — comprueba IP y slave ID")
 
         self.device_model = self._decode_ascii(raw_map, DEVICE_MODEL_REGISTERS)
         self.device_version = self._decode_ascii(raw_map, DEVICE_VERSION_REGISTERS)
+
+        if self.device_model:
+            _LOGGER.info("Dispositivo detectado: %s v%s", self.device_model, self.device_version)
 
         # Decodificar cada sensor
         result: dict[int, float | None] = {}

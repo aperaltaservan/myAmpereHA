@@ -105,7 +105,7 @@ def _device_info(entry: ConfigEntry, coordinator: AmpereCoordinator) -> DeviceIn
     return DeviceInfo(
         identifiers={(DOMAIN, entry.entry_id)},
         name="Ampere Energy",
-        manufacturer="Ampere Energy SL",
+        manufacturer="Ampere Power Energy, S.L.",
         model=coordinator.device_model or "Ampere.IO Smart-box",
         sw_version=coordinator.device_version,
         configuration_url=f"http://{host}",
