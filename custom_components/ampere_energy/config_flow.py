@@ -262,7 +262,7 @@ class AmpereOptionsFlow(OptionsFlow):
                 {k: v for k, v in DTYPE_LABELS.items()}
             ),
             vol.Required(SENSOR_KEY_SCALE, default=current.get(SENSOR_KEY_SCALE, DEFAULT_SCALE)): vol.All(
-                float, vol.Range(min=-1e6, max=1e6)
+                vol.Coerce(float), vol.Range(min=-1e6, max=1e6)
             ),
             vol.Required(SENSOR_KEY_PRECISION, default=current.get(SENSOR_KEY_PRECISION, DEFAULT_PRECISION)): vol.All(
                 int, vol.Range(0, 6)
@@ -376,7 +376,7 @@ class AmpereOptionsFlow(OptionsFlow):
                 {k: v for k, v in DTYPE_LABELS.items()}
             ),
             vol.Required(SENSOR_KEY_SCALE, default=1.0): vol.All(
-                float, vol.Range(min=-1e6, max=1e6)
+                vol.Coerce(float), vol.Range(min=-1e6, max=1e6)
             ),
             vol.Required(SENSOR_KEY_PRECISION, default=0): vol.All(int, vol.Range(0, 6)),
             vol.Optional(SENSOR_KEY_UNIT, default=""): str,
