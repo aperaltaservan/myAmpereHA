@@ -1,3 +1,48 @@
+# Release notes - v0.3.0
+
+Fecha: 4 de mayo de 2026
+
+## Resumen
+
+myAmpere v0.3.0 añade mejoras de estabilidad, binary sensors y framework de tests. Esta versión introduce reconexión automática y detection de estados del sistema.
+
+## Novedades
+
+### Estabilidad y reconexión
+- **Retry con backoff exponencial**: Hasta 3 reintentos automáticos (0.5s → 4s) ante fallos de conexión.
+- **Tracking de salud**: Nueva propiedad `is_alive` y contador `connection_errors` para monitorizar el estado de conexión.
+- **Timeout configurable**: Nuevo parámetro en opciones (por defecto 5 segundos).
+- **Logging mejorado**: Mensajes estructurados en coordinator y client.
+
+### Binary sensors (estados)
+- **5 binary sensors nuevos** que indican estados del sistema:
+  - `Cargando batería` — cuando potencia batería > 0
+  - `Descargando batería` — cuando potencia batería < 0
+  - `Produciendo solar` — cuando producción solar > 0
+  - `Importando red` — cuando red > 0 (importando)
+  - `Exportando red` — cuando red < 0 (exportando)
+- Se crean automáticamente si los sensores de potencia correspondientes están habilitados.
+
+### Tests
+- **Framework pytest** configurado en `pyproject.toml`.
+- Tests unitarios para `modbus_client.py` y `coordinator.py`.
+- Fixtures reusable en `tests/conftest.py`.
+
+## Cambios técnicos
+
+- **NO usa pymodbus**: Implementación con sockets asyncio crudos (sin dependencias externas).
+- Platform adicional: `binary_sensor` registrada en el setup.
+- Metadatos actualizados en `manifest.json` (`integration_type`, `quality_scale`).
+
+## Compatibilidad y actualización
+
+- Versión anterior: `v0.2.1`
+- Versión nueva: `v0.3.0`
+- No se requieren cambios manuales de configuración.
+- Los binary sensors se crean automáticamente si tienes los sensores de potencia habilitados.
+
+---
+
 # Release notes - v0.2.1
 
 Fecha: 30 de abril de 2026
@@ -17,6 +62,8 @@ myAmpere v0.2.1 mejora la identificacion del equipo Ampere.IO y corrige sensores
   - lectura 65% -> SOC app 65%
   - lectura 95% -> SOC app 100%
 - Optimiza la lectura Modbus por grupos cercanos para evitar leer todo el rango hasta los registros `1000+`.
+
+---
 
 # Release notes - v0.2.0
 
